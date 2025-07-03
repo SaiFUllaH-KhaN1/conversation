@@ -1,6 +1,6 @@
 from google import genai
 from dotenv import load_dotenv
-import os, ast
+import os, ast, json
 from fastapi import FastAPI
 from prompts import *
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from typing import AsyncIterable
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 load_dotenv(dotenv_path="./.env")
 os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
@@ -17,10 +18,11 @@ history_dict = []
 
 app = FastAPI()
 
-app.mount("/", StaticFiles(directory="build", html=True), name="static")
-
 origins = [
-    "http://localhost:8080","http://127.0.0.1:3000","http://localhost:3000", "http://127.0.0.1:6770",
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "http://127.0.0.1:6770",
     "https://conversation-r1y4.onrender.com"
 ]
 
@@ -32,6 +34,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Correctly mount React static files under '/app' instead of '/'
+app.mount("/app", StaticFiles(directory="build", html=True), name="static")
+# PROD
+# app.mount("/app", StaticFiles(directory="buildProd", html=True), name="static")
+
+
+@app.get("/app/{full_path:path}")
+async def serve_react_app():
+    return FileResponse("build/index.html")
+# PROD
+# async def serve_react_app():
+#     return FileResponse("buildProd/index.html")
 
 
 async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: str, mode: str, persona: str, interBotPersona: str, learningObj: str) -> AsyncIterable[str]:
@@ -73,10 +87,17 @@ async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: st
         yield token
 
 @app.post("/converse")
-async def converse(que: str, mode: str, chatHistoryObj: str, textTextBlock: str, persona: str='', interBotPersona: str='', learningObj: str=''):
+async def converse(req: dict):
     
-    chatHistoryObj=ast.literal_eval(chatHistoryObj)
+    que = req.get('que')
+    chatHistoryObj = req.get('chatHistoryObj', [])  # Directly use as JSON object
     chatHistoryObj.reverse()
+    mode = req.get('mode')
+    textTextBlock = req.get('textTextBlock')
+    persona = req.get('persona', '')
+    interBotPersona = req.get('interBotPersona', '')
+    learningObj = req.get('learningObj', '')
+
 
     print(f'''Question: {que}\n AND History: {chatHistoryObj}\n AND TextBlock: {textTextBlock}
           \nAND persona: {persona}\nAND interBotPersona: {interBotPersona}''')
