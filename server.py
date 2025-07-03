@@ -35,17 +35,17 @@ app.add_middleware(
 )
 
 # Correctly mount React static files under '/app' instead of '/'
-app.mount("/app", StaticFiles(directory="build", html=True), name="static")
+# app.mount("/app", StaticFiles(directory="build", html=True), name="static")
 # PROD
-# app.mount("/app", StaticFiles(directory="buildProd", html=True), name="static")
+app.mount("/app", StaticFiles(directory="buildProd", html=True), name="static")
 
 
 @app.get("/app/{full_path:path}")
-async def serve_react_app():
-    return FileResponse("build/index.html")
-# PROD
 # async def serve_react_app():
-#     return FileResponse("buildProd/index.html")
+#     return FileResponse("build/index.html")
+# PROD
+async def serve_react_app():
+    return FileResponse("buildProd/index.html")
 
 
 async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: str, mode: str, persona: str, interBotPersona: str, learningObj: str) -> AsyncIterable[str]:
