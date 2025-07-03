@@ -20,7 +20,8 @@ app = FastAPI()
 app.mount("/", StaticFiles(directory="build", html=True), name="static")
 
 origins = [
-    "http://localhost:8080","http://127.0.0.1:3000","http://localhost:3000"
+    "http://localhost:8080","http://127.0.0.1:3000","http://localhost:3000", "http://127.0.0.1:6770",
+    "https://conversation-r1y4.onrender.com"
 ]
 
 app.add_middleware(
