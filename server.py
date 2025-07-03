@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from typing import AsyncIterable
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
 
 load_dotenv(dotenv_path="./.env")
 os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
@@ -15,6 +16,8 @@ client = genai.Client()
 history_dict = []
 
 app = FastAPI()
+
+app.mount("/", StaticFiles(directory="build", html=True), name="static")
 
 origins = [
     "http://localhost:8080","http://127.0.0.1:3000","http://localhost:3000"
@@ -28,55 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# @app.post("/converse")
-# async def converse(que: str, mode: str):
-    
-#     def simulation_func():
-#         response = client.models.generate_content_stream(
-#             model="gemini-2.0-flash",
-#             contents=[f"{simulated_func_prompt} QUESTION: {que} HISTORY_PREVIOUS_CONVERSATION: {history_dict}"]
-#         )
 
-#         sent_dict=[]
-#         for chunk in response:
-#             print(chunk.text, end="")
-#             sent_dict.append(chunk.text)
-
-#         temp_str=''
-#         for ele in sent_dict:
-#             temp_str += ele
-
-#         print('temp_str',temp_str)
-#         final_str = {'Question': f'{que}', 'Answer': f'{temp_str}'}
-#         history_dict.append(final_str)
-
-#     def grounded_func():
-#         response = client.models.generate_content_stream(
-#             model="gemini-2.0-flash",
-#             contents=[f"{grounded_func_prompt} TEXT_CONTENT: {que} HISTORY_PREVIOUS_CONVERSATION: {history_dict}"]
-#             )
-
-#         sent_dict=[]
-#         for chunk in response:
-#             print(chunk.text, end="")
-#             sent_dict.append(chunk.text)
-            
-#         temp_str=''
-#         for ele in sent_dict:
-#             temp_str += ele
-
-#         print('temp_str',temp_str)
-#         final_str = {'Question': f'{que}', 'Answer': f'{temp_str}'}
-#         history_dict.append(final_str)
-
-#     if mode=="simulated_conversation":
-#         simulation_func()
-#     if mode=="grounded_conversation":
-#         grounded_func()
-
-#     print("history_dict",history_dict)
-
-#     return {"result": history_dict[-1]['Answer'], "history_dict": history_dict}
 
 async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: str, mode: str, persona: str, interBotPersona: str, learningObj: str) -> AsyncIterable[str]:
     
