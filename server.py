@@ -12,10 +12,9 @@ from typing import Annotated
 from PIL import Image
 from io import BytesIO
 
-load_dotenv()
-os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
+load_dotenv("./.env")
 PASS_VAR = os.getenv("PASS")
-client = genai.Client()
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 history_dict = []
 
@@ -420,4 +419,4 @@ async def delete_dir(PASS: Annotated[str, Form()]):
         print("wrong pass")
 
 # Correctly mount React static files under '/app' instead of '/'
-app.mount("/", StaticFiles(directory="prodbuild", html=True), name="static")
+app.mount("/", StaticFiles(directory="build", html=True), name="static")
