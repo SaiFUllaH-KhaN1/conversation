@@ -419,4 +419,4 @@ async def delete_dir(PASS: Annotated[str, Form()]):
         print("wrong pass")
 
 # Correctly mount React static files under '/app' instead of '/'
-app.mount("/", StaticFiles(directory="build", html=True), name="static")
+app.mount("/", StaticFiles(directory="prodbuild", html=True), name="static")
