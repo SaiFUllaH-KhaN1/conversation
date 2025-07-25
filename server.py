@@ -26,7 +26,8 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1:6770",
     "http://localhost:6770",
-    "https://conversation-r1y4.onrender.com"
+    "https://conversation-r1y4.onrender.com",
+    "https://conversation-v2.onrender.com"
 ]
 
 app.add_middleware(
@@ -388,7 +389,7 @@ async def inter_bot_media(mode: Annotated[str, Form()], textTextBlock: Annotated
                 source_img = f'{session_id_temp}/gemini-image{counter_img}.png'
                 image.save(source_img)
                 image_data_decoded = base64.b64encode(image_bytes).decode('utf-8')
-                f.write(f'''<br/><img id="img-interbot-media" src="data:image/png;base64,{image_data_decoded}" alt="An Image {counter_img}" width="640" height="360"><br/>''')
+                f.write(f'''<br/><img id="img-interbot-media" src="data:image/png;base64,{image_data_decoded}" alt="An Image {counter_img}" width="640" height="520"><br/>''')
                 counter_img += 1
 
     # # # for local check
