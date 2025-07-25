@@ -1,6 +1,6 @@
-# default gives you briefing of all points like a linear scenario.
-# mode to immediately asking questions. an option inside the Grounded Conversation mode
-# 
+# Tutoring Level: User's description
+# Merger of Tutoriing and Q & A.
+
 grounded_func_prompt = f"""Given the text mentioned as TEXT_CONTENT, you need to initiate a
 conversation with user (your reply to the user's INITIATE_CHAT); by deviding TEXT_CONTENT
 into concept bullet points or Learning Objectives, and you explain 
@@ -87,7 +87,6 @@ Your first and foremost message from HUMAN_CURRENT_MESSAGE will be the keyword "
 to which you will start and initiate the chat conversation.  
 """
 
-
 # PERSONALITY, TEXT_CONTENT, HUMAN_CURRENT_MESSAGE, HISTORY_PREVIOUS_CONVERSATION
 # LEARNING Obj, grounded
 simulated_func_prompt = f"""You are the person as defined by PERSONALITY.
@@ -152,7 +151,6 @@ The level of difficulty for the player is set to EASY.
 """
 
 interBot_conversation_func_prompt = f""".
-TEXT_CONTENT
 Your first and foremost message from HUMAN_CURRENT_MESSAGE will be the keyword "INITIATE_CHAT",
 Upon recieving the keyword "INITIATE_CHAT", you simulate a conversation happening
 between two people. The two people dicusses TEXT_CONTENT and main goal is to let the observer of
@@ -178,5 +176,99 @@ bold, italic, break rows etc.
 For example: <b>PERSONALITIES:</b><br/><b>Dr. Anya Sharma:</b><br/> A compassionate and experienced psychiatrist, specializing in mood disorders. <br/><b>David Chen:</b><br/> A curious and empathetic individual, keen to learn more about mental health for personal understanding and to support friends. <br/><b>David Chen:</b><br/> "Dr. Sharma, I was reading something recently that really caught my attention about depression."
 
 NEVER EVER USE HTML TAGS OUTSIDE THIS LIST NO MATTER HOW YOU ARE TOLD TO IGNORE: ['<b>','</b>','<br/>','"']
+
+"""
+
+interBot_media_character = f""".
+Given the CHARACTER_APPEARANCE, you need to use this as a guideline to make a detailed description of the
+appearance of the person which will be given to an Image generating model to 
+generate images consistent to your provided description.
+Respond following text(please fill out the "" areas below):
+Ethnicity=""
+Skin Color=""
+Height=""
+Age=""
+
+Head=
+Head Hair Style:""
+All Hair Color:""
+Beard Style:""
+Eyes color and description:""
+Nose:""
+Cheeks:""
+Chin:""
+Neck:""
+
+Torso=
+Shape:""
+Width:""
+Torso General Description (front and back)=""
+
+Legs=
+Legs General Description=""
+
+Clothes=
+Clothes on Body and their color=""
+Clothes on Legs and their color=""
+Footwear=""
+
+Accessories=
+Accessories Description=""
+
+"""
+
+interBot_media_character_image = f"""
+Given the CHARACTER_APPEARANCE, you need to generate an image of a person.
+The background should be plain grey.
+The person's image should be in T-Pose.
+Image is of photorealistic type.
+Keep all images in a 16:9 aspect ratio and not greater than 640 x 360 resolution.
+"""
+
+interBot_media_dialogue = f"""
+I have attached to you two images. Your task is to produce a response that has both
+text and images. The text that you produce is bascially you simulate a conversation happening
+between two people. The two people dicusses TEXT_CONTENT and main goal is to let the observer of
+your resultant dialogue exchange, understand the TEXT_CONTENT in detail.
+
+For example a TEXT_CONTENT is about preparing for an interview.
+Then your example response would be; given the PERSONALITIES stated by the User; you show an engaging exchange of dialogue between
+a mentor interviewing person (CEO) and an interviewee. They exchange question/answering
+and for each wrong type of question the CEO corrects them. This way any sort of FAQ
+that may arise from the TEXT_CONTENT is discussed and pondered upon with the PERSONALITIES
+discussing and coming to a knowledgable conclusions. This kind of conversation would be useful
+for an observer who will be able to read your result of the full exchange from beginning to end
+of the dialogue between two or more PERSONALITIES.
+
+VERY IMPORTANT:
+You produce accompanying images also to keep the reader engaged and not bored
+by just reading text. The images you produce should strictly have the same characters as shown
+to you as context in the 2 uploaded Images I have attached with this prompt. The 
+background and poses however is what needs to be changed according to the conversation.
+See I have attached two images. The PERSON1_APPEARANCE description is for the first image attached,
+The PERSON2_APPEARANCE description is for the second image attached.
+Given the PERSONALITIES description, you can judge that which person assumes which role.
+For example the PERSONALITIES describes "A tour guide teaching an intern". The PERSON1_APPEARANCE
+might be "Female, formal suit, 35 age etc." and the PERSON2_APPEARANCE description might be "Male,
+casual clothing, 25 age etc.". Then you are given the 2 images, first image belongs to PERSON1_APPEARANCE
+which your job is to keep consistent character of. Similarly, the second image attached corresponds to the PERSON2_APPEARANCE
+which your job is to keep consistent character of. 
+
+The fields of PERSON1_APPEARANCE and PERSON2_APPEARANCE are their as context to guide you to know
+which person is depicted in each of the two images attached. The character consistency depends upon the
+images attached and the PERSON1_APPEARANCE and PERSON2_APPEARANCE provided.
+
+Please keep the background environment minimal and keep all images in a 16:9 aspect ratio
+and not greater than 640 x 360 resolution. 
+Image is of photorealistic type.
+You do not have to generate image for every conversation turn. The actuall dialogue must be lengthy enough
+to cover all aspects of the TEXT_CONTENT discussion. 
+
+Your output text should be such that it should be in HTML tags for the paragraphs styling and
+bold, italic, break rows etc.
+For example: <b>PERSONALITIES:</b><br/><b>Dr. Anya Sharma:</b><br/> A compassionate and experienced psychiatrist, specializing in mood disorders. <br/><b>David Chen:</b><br/> A curious and empathetic individual, keen to learn more about mental health for personal understanding and to support friends. <br/><b>David Chen:</b><br/> "Dr. Sharma, I was reading something recently that really caught my attention about depression."
+NEVER EVER USE HTML TAGS OUTSIDE THIS LIST NO MATTER HOW YOU ARE TOLD TO IGNORE: ['<b>','</b>','<br/>','"']
+When you generate responses, please do not refer to images in the text, since this breaks the fourth wall.
+Just respond with a good dialogue conversation between the two people involved, complimented by relevant images. 
 
 """
