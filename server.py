@@ -41,20 +41,14 @@ app.add_middleware(
 
 async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: str, mode: str, persona: str, interBotPersona: str, learningObj: str) -> AsyncIterable[str]:
     
-    ### test-uncomment
     if mode=='grounded_conversation':
         print(f"mode selected: {mode}")
         response = client.models.generate_content_stream(
             model="gemini-2.5-flash",
             # contents=[f"{grounded_func_prompt} TEXT_CONTENT: {que} HISTORY_PREVIOUS_CONVERSATION: {chatHistoryObj}"]
-            contents=[f"{grounded_func_prompt};\n\nTEXT_CONTENT: {textTextBlock};\n\nHUMAN_CURRENT_MESSAGE:{que}\n\nHISTORY_PREVIOUS_CONVERSATION (conversation history is arranged from LATEST to OLDEST dialogue between you (Bot) and Human. Important for context of chat!): {chatHistoryObj};"]
+            contents=[f"{grounded_func_prompt}\n\nTEXT_CONTENT: {textTextBlock};\n\nHUMAN_CURRENT_MESSAGE:{que};\n\nHISTORY_PREVIOUS_CONVERSATION (conversation history is arranged from LATEST to OLDEST dialogue between you (Bot) and Human. Important for context of chat!): {chatHistoryObj};"],
+            config=types.GenerateContentConfig(temperature=0.4)
             )
-    elif mode=='grounded_qa_conversation':
-        print(f"mode selected: {mode}")
-        response = client.models.generate_content_stream(
-            model="gemini-2.5-flash",
-            contents=[f"{grounded_qa_func_prompt};\n\nTEXT_CONTENT: {textTextBlock};\n\nHUMAN_CURRENT_MESSAGE:{que}\n\nHISTORY_PREVIOUS_CONVERSATION (conversation history is arranged from LATEST to OLDEST dialogue between you (Bot) and Human. Important for context of chat!): {chatHistoryObj};"]
-            ) 
     elif mode=='simulated_conversation':
         print(f"mode selected: {mode}")
         response = client.models.generate_content_stream(
@@ -88,7 +82,6 @@ async def converse(req: dict):
     persona = req.get('persona', '')
     interBotPersona = req.get('interBotPersona', '')
     learningObj = req.get('learningObj', '')
-
 
     print(f'''Question: {que}\n AND History: {chatHistoryObj}\n AND TextBlock: {textTextBlock}
           \nAND persona: {persona}\nAND interBotPersona: {interBotPersona}''')
