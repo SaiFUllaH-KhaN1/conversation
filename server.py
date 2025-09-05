@@ -26,7 +26,6 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1:6770",
     "http://localhost:6770",
-    "https://conversation-r1y4.onrender.com",
     "https://conversation-v2.onrender.com"
 ]
 
@@ -414,3 +413,4 @@ async def delete_dir(PASS: Annotated[str, Form()]):
 
 # Correctly mount React static files under '/app' instead of '/'
 app.mount("/", StaticFiles(directory="prodbuild", html=True), name="static")
+
