@@ -1,7 +1,7 @@
+import os, uuid, base64, shutil, json, traceback, ast, re, copy
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
-import os, uuid, base64, shutil
 from fastapi import FastAPI, Form, UploadFile
 from prompts import *
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +26,7 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1:6770",
     "http://localhost:6770",
+    "https://conversation-r1y4.onrender.com",
     "https://conversation-v2.onrender.com"
 ]
 
@@ -37,23 +38,106 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def topics_skipped_check(topics_skipped_array, topics_skipped):
+    # topics_skipped_array looks like _ADD = ['name1', 'name2']
+    try:
+        topics_skipped_stripped = topics_skipped_array.split("=") # ['_ADD ', " ['name1', 'name2']
+        topics_skipped_final = ast.literal_eval(topics_skipped_stripped[1]) # ['name1', 'name2']
+        print(topics_skipped_final, topics_skipped_stripped)
+        if '_ADD' in topics_skipped_stripped[0]:
+            print(f"in {topics_skipped} ADD {topics_skipped_final}")
+            for ele2 in topics_skipped_final:
+                topics_skipped.append(ele2)
+            return topics_skipped
+        elif '_REMOVE' in topics_skipped_stripped[0]:
+            print(f"in {topics_skipped} REMOVE {topics_skipped_final}")
+            for ele2 in topics_skipped_final:
+                topics_skipped.remove(ele2)
+            return topics_skipped
 
-async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: str, mode: str, persona: str, interBotPersona: str, learningObj: str) -> AsyncIterable[str]:
+    except Exception as e:
+        print(traceback.format_exc())
+        return None
+
+def _set_session_data(user_data, file_path):
+    with open(file_path, 'w', encoding="utf-8") as f:
+        json.dump(user_data, f)
+
+def _get_session_data(file_path):
+    with open(file_path, 'r', encoding="utf-8") as f:
+        user_data = json.load(f)
+    return user_data
+
+async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: str, mode: str, instructions_grounded: str, persona: str, interBotPersona: str, learningObj: str, user_data: str, file_path: str) -> AsyncIterable[str]:
     
     if mode=='grounded_conversation':
         print(f"mode selected: {mode}")
+        topics_skipped = []
+        topics_skipped_deepcopy = []
+        try:
+            learning_objectives = user_data['learning_objectives']
+            topics_skipped = user_data['topics_skipped']
+            topics_skipped_deepcopy = copy.deepcopy(topics_skipped)
+            print("user_data learning_objectives:",learning_objectives, "topics_skipped", topics_skipped)
+        except:
+            print("no learning_objectives or topics_skipped found!")
+            pass
+
+        if len(chatHistoryObj) < 2:
+            response_learning_objectives = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[f"{grounded_func_prompt_learning_objectives}\n\nADDITIONAL_PROMPT_BY_INSTRUCTOR: {instructions_grounded}\n\nTEXT_CONTENT: {textTextBlock}"],
+            config=types.GenerateContentConfig(temperature=0)
+            )
+            learning_objectives = response_learning_objectives.text
+            user_data['learning_objectives'] = learning_objectives
+            _set_session_data(user_data, file_path)
+            print("newly made learning_objectives:",learning_objectives)
+
         response = client.models.generate_content_stream(
             model="gemini-2.5-flash",
-            # contents=[f"{grounded_func_prompt} TEXT_CONTENT: {que} HISTORY_PREVIOUS_CONVERSATION: {chatHistoryObj}"]
-            contents=[f"{grounded_func_prompt}\n\nTEXT_CONTENT: {textTextBlock};\n\nHUMAN_CURRENT_MESSAGE:{que};\n\nHISTORY_PREVIOUS_CONVERSATION (conversation history is arranged from LATEST to OLDEST dialogue between you (Bot) and Human. Important for context of chat!): {chatHistoryObj};"],
-            config=types.GenerateContentConfig(temperature=0.4)
+            contents=[f"""{grounded_func_prompt}
+{{
+"INPUT_VARIABLES":
+[
+{{"ADDITIONAL_PROMPT_BY_INSTRUCTOR": 
+"{instructions_grounded}"
+}},
+
+{{"TEXT_CONTENT": 
+"{textTextBlock}"
+}},
+
+{{"LEARNING_OBJECTIVES": 
+"{learning_objectives}"
+}},
+
+{{"TOPICS_SKIPPED_LIST":
+"{topics_skipped}"
+}},
+
+{{"HUMAN_CURRENT_MESSAGE": 
+"{que}"
+}},
+
+{{"HISTORY_PREVIOUS_CONVERSATION (conversation history is arranged from OLDEST to LATEST dialogue between you (Bot) and Human. Important for context of chat!)": 
+"{chatHistoryObj}"
+}},
+]
+}}
+"""],
+            config=types.GenerateContentConfig(temperature=0.6)
             )
+        
+
     elif mode=='simulated_conversation':
         print(f"mode selected: {mode}")
         response = client.models.generate_content_stream(
             model="gemini-2.5-flash",
             contents=[f"{simulated_func_prompt};\n\nPERSONALITY:{persona};\n\nLEARNING_OBJECTIVES:{learningObj}\n\nTEXT_CONTENT: {textTextBlock};\n\nHUMAN_CURRENT_MESSAGE:{que}\n\nHISTORY_PREVIOUS_CONVERSATION (conversation history is arranged from LATEST to OLDEST dialogue between you (Bot) and Human. Important for context of chat!): {chatHistoryObj};"]
             ) 
+        
+
     elif mode=='interBot_conversation':
         print(f"mode selected: {mode}")
         response = client.models.generate_content_stream(
@@ -61,31 +145,65 @@ async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: st
             contents=[f"{interBot_conversation_func_prompt};\n\nPERSONALITIES:{interBotPersona};\n\nTEXT_CONTENT: {textTextBlock};\n\nHUMAN_CURRENT_MESSAGE:{que}\n\nHISTORY_PREVIOUS_CONVERSATION (conversation history is arranged from LATEST to OLDEST dialogue between you (Bot) and Human. Important for context of chat!): {chatHistoryObj};"]
             ) 
 
+
     # response = "test content" ### test-remove
-    temp_ar = ''
-    for chunk in response:
-        token = chunk.text ### test-uncomment 
-        # token=chunk ### test-remove
-        print(token, end='')
-        temp_ar += token
-        yield token
+    if mode=='grounded_conversation':
+        temp_ar = ''
+        for chunk in response:
+            token = chunk.text ### test-uncomment 
+            # token=chunk ### test-remove
+            print(token, end='')
+            temp_ar += token
+            yield token
+
+        topics_skipped_array = re.findall(r"###topicsSKIPPED(.*?)###", temp_ar)
+        if topics_skipped_array:  # if the list is non-empty, meaning a match is found
+            topics_skipped_array = topics_skipped_array[0]
+            temp_ar = temp_ar.replace("###topicsSKIPPED" + topics_skipped_array + "###", '')
+            yield temp_ar
+
+        if topics_skipped_array:
+            print(f"topics_skipped_array command detected: {topics_skipped_array}")
+            topics_skipped_deepcopy = topics_skipped_check(topics_skipped_array, topics_skipped_deepcopy)
+            user_data['topics_skipped'] = topics_skipped_deepcopy
+            _set_session_data(user_data, file_path)
+
+            
+    else:
+        for chunk in response:
+            token = chunk.text 
+            print(token, end='')
+            yield token
+    
 
 @app.post("/converse")
 async def converse(req: dict):
-    
+     
     que = req.get('que')
     chatHistoryObj = req.get('chatHistoryObj', [])  # Directly use as JSON object
-    chatHistoryObj.reverse()
+    # chatHistoryObj.reverse() Newest messages first
     mode = req.get('mode')
     textTextBlock = req.get('textTextBlock')
     persona = req.get('persona', '')
     interBotPersona = req.get('interBotPersona', '')
     learningObj = req.get('learningObj', '')
+    instructions_grounded = req.get('instructions_grounded', '')
+    session_id = str(req.get('session_id', '').strip('"'))
 
-    print(f'''Question: {que}\n AND History: {chatHistoryObj}\n AND TextBlock: {textTextBlock}
-          \nAND persona: {persona}\nAND interBotPersona: {interBotPersona}''')
+    # session_id and user_data management
+    session_id_temp = f"user_files_converse/{session_id}"
+    os.makedirs(session_id_temp, exist_ok=True)
+    file_path = os.path.join(session_id_temp, "user_data.json")
+    if os.path.isfile(file_path):
+        user_data = _get_session_data(file_path)
+    else:
+        user_data = {}
+        _set_session_data(user_data, file_path)
 
-    generator = stream_generate_func(que, chatHistoryObj, textTextBlock, mode, persona, interBotPersona, learningObj)
+    print(f'''Question: {que}\n AND History: {chatHistoryObj}\n AND TextBlock: {textTextBlock}\n instructions_grounded: {instructions_grounded}
+          \nAND persona: {persona}\nAND interBotPersona: {interBotPersona}\n AND session_id_temp: {session_id_temp}''')
+
+    generator = stream_generate_func(que, chatHistoryObj, textTextBlock, mode, instructions_grounded, persona, interBotPersona, learningObj, user_data, file_path)
     
     return StreamingResponse(generator, media_type="text/event-stream")
 
@@ -407,10 +525,11 @@ async def inter_bot_media(mode: Annotated[str, Form()], textTextBlock: Annotated
 async def delete_dir(PASS: Annotated[str, Form()]):
     if PASS == PASS_VAR:
         shutil.rmtree("user_files")
+        shutil.rmtree("user_files_converse")
         print("Deleted files of user's")
     else:
         print("wrong pass")
 
+
 # Correctly mount React static files under '/app' instead of '/'
 app.mount("/", StaticFiles(directory="prodbuild", html=True), name="static")
-
