@@ -126,7 +126,7 @@ async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: st
 ]
 }}
 """],
-            config=types.GenerateContentConfig(temperature=0.4)
+            config=types.GenerateContentConfig(temperature=0.6)
             )
         
 
@@ -532,5 +532,4 @@ async def delete_dir(PASS: Annotated[str, Form()]):
 
 
 # Correctly mount React static files under '/app' instead of '/'
-
 app.mount("/", StaticFiles(directory="prodbuild", html=True), name="static")
