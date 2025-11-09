@@ -1,4 +1,4 @@
-import os, uuid, base64, shutil, json, traceback, ast, re, copy
+import os, uuid, base64, shutil, json, traceback, ast, re, copy, time
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -158,8 +158,11 @@ async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: st
 
         topics_skipped_array = re.findall(r"###topicsSKIPPED(.*?)###", temp_ar)
         if topics_skipped_array:  # if the list is non-empty, meaning a match is found
+            print("thinking yeild initiated")
+            yield "... I am still Thinking, please wait ..."
             topics_skipped_array = topics_skipped_array[0]
             temp_ar = temp_ar.replace("###topicsSKIPPED" + topics_skipped_array + "###", '')
+            yield "!RESPONSE_HAS_ENDED_CLEAR_THE_EARLY_MESSAGE_PLEASE!"
             yield temp_ar
 
         if topics_skipped_array:
@@ -204,7 +207,7 @@ async def converse(req: dict):
           \nAND persona: {persona}\nAND interBotPersona: {interBotPersona}\n AND session_id_temp: {session_id_temp}''')
 
     generator = stream_generate_func(que, chatHistoryObj, textTextBlock, mode, instructions_grounded, persona, interBotPersona, learningObj, user_data, file_path)
-    
+
     return StreamingResponse(generator, media_type="text/event-stream")
 
 
@@ -532,4 +535,4 @@ async def delete_dir(PASS: Annotated[str, Form()]):
 
 
 # Correctly mount React static files under '/app' instead of '/'
-app.mount("/", StaticFiles(directory="prodbuild", html=True), name="static")
+app.mount("/", StaticFiles(directory="prodbuild", html=True), name="static") # for production
