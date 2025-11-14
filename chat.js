@@ -88,16 +88,59 @@ const CHAT = ({modeStr, exitValue, textTextBlock, learningObj, persona, instruct
                 let token = decoder.decode(result.value);
 
                 // here streaming update occurs!
-                if (token.includes("!RESPONSE_HAS_ENDED_CLEAR_THE_EARLY_MESSAGE_PLEASE!"))
-                {
-                    console.log(`AI COMMAND DETECTED! Token is: ${token}`);
-                    var textAfter = token.split("!RESPONSE_HAS_ENDED_CLEAR_THE_EARLY_MESSAGE_PLEASE!")[1];
-                    textResponseSetterFunction((x)=>{return textAfter;});
-                }
-                else{
-                    textResponseSetterFunction((x)=>{return x+token;});
+                // if (token.includes("!RESPONSE_HAS_ENDED_CLEAR_THE_EARLY_MESSAGE_PLEASE!"))
+                // {
+                //     console.log(`AI COMMAND DETECTED! Token is: ${token}`);
+                //     var textAfter = token.split("!RESPONSE_HAS_ENDED_CLEAR_THE_EARLY_MESSAGE_PLEASE!")[1];
+                //     textResponseSetterFunction((x)=>{return textAfter;});
+                // }
+                // else{
+                //     textResponseSetterFunction((x)=>{return x+token;});
+                // };
+
+                // for Anton streaming update
+                let token_array = token.split('||||'); // splitting to split double jsons for example
+                // {"this":"that"}||||{"alsoThis":"alsoThat"}||||
+                // It occurs that in one streaming instance, double json may be there.
+                // This is how backend sends to frontend with or without seperators.
+                // Backend may send just one json as well like {"this":"that"}
+                // This frontend way supports both cases where single or double jsons are sent in
+                // one stream instance
+                console.log(`token_array is: ${token_array}`);
+                for (let ele of token_array){
+
+                    ele = ele.trim(); // trimming extra spaces
+                    if (!ele) {continue}; // for skipping blank elements and not
+                    // processing if such empty element is there in the array to which we
+                    // are using for loop
+
+                    ele = JSON.parse(ele); // we convert string to json for below process
+
+                    // we retreive keys. chunk_response key is what the real
+                    // streamed tokens are. Ones the chunks are completed
+                    // then there is a key named "response", which includes
+                    // the final full AI generated message and that is used to 
+                    // replace all the chunks in displayed in the frontend before
+                    // for that specific message. In addition, you may also have
+                    // session_id and time calculation and chat_history 
+                    // with the element which has they as "response" 
+                    if (ele.chunk_response){
+                        let chunk_value = ele.chunk_response;
+                        console.log(`Recieving chunks:${chunk_value}`);
+                        textResponseSetterFunction((x)=>{return x+chunk_value;});
+                    }
+                    else if (ele.response){
+                        let final_value = ele.response;
+                        let session_id = ele.session_id; // the final response
+                        // will also have other keys as well which would have value
+                        // for example session_id, chat_history array or some other 
+                        // outputs like token_time,
+                        // that would need their value to be processed
+                        console.log(`Final value:${final_value}, and session id is:${session_id}`);
+                        textResponseSetterFunction((x)=>{return final_value;});
+                    };
+
                 };
-                
                       
                 return reader.read().then(processResult);
             });
