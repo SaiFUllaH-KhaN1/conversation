@@ -150,20 +150,22 @@ async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: st
     if mode=='grounded_conversation':
         temp_ar = ''
         for chunk in response:
-            token = chunk.text ### test-uncomment 
-            # token=chunk ### test-remove
+            token = str(chunk.text) ### test-uncomment 
             print(token, end='')
             temp_ar += token
-            yield token
+            # yield token
+            yield json.dumps({"chunk_response":token}) + "||||"
 
         topics_skipped_array = re.findall(r"###topicsSKIPPED(.*?)###", temp_ar)
         if topics_skipped_array:  # if the list is non-empty, meaning a match is found
             print("thinking yeild initiated")
-            yield "... I am still Thinking, please wait ..."
+            yield json.dumps({"chunk_response": "... I am still Thinking, please wait ..."}) + "||||"
             topics_skipped_array = topics_skipped_array[0]
             temp_ar = temp_ar.replace("###topicsSKIPPED" + topics_skipped_array + "###", '')
-            yield "!RESPONSE_HAS_ENDED_CLEAR_THE_EARLY_MESSAGE_PLEASE!"
-            yield temp_ar
+            print(f"temp_ar is: {temp_ar}")
+            # yield "!RESPONSE_HAS_ENDED_CLEAR_THE_EARLY_MESSAGE_PLEASE!"
+            # yield temp_ar
+            yield json.dumps({"response":temp_ar, "session_id": "12334"}) + "||||"
 
         if topics_skipped_array:
             print(f"topics_skipped_array command detected: {topics_skipped_array}")
@@ -176,7 +178,7 @@ async def stream_generate_func(que: str, chatHistoryObj: list, textTextBlock: st
         for chunk in response:
             token = chunk.text 
             print(token, end='')
-            yield token
+            yield json.dumps({"chunk_response":token})
     
 
 @app.post("/converse")
@@ -207,8 +209,8 @@ async def converse(req: dict):
           \nAND persona: {persona}\nAND interBotPersona: {interBotPersona}\n AND session_id_temp: {session_id_temp}''')
 
     generator = stream_generate_func(que, chatHistoryObj, textTextBlock, mode, instructions_grounded, persona, interBotPersona, learningObj, user_data, file_path)
-
-    return StreamingResponse(generator, media_type="text/event-stream")
+    print(f"generator: {generator}")
+    return StreamingResponse(generator)
 
 
 @app.post("/inter_bot_media_preview")
@@ -532,7 +534,6 @@ async def delete_dir(PASS: Annotated[str, Form()]):
         print("Deleted files of user's")
     else:
         print("wrong pass")
-
 
 # Correctly mount React static files under '/app' instead of '/'
 app.mount("/", StaticFiles(directory="prodbuild", html=True), name="static") # for production
